@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+<meta charset="utf-8">
+<title>Жижигхэн гэрэл — интерактив анимэйшн</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+@font-face{font-family:Fira;src:url('fonts/FiraSans-Medium.ttf');}
+@font-face{font-family:FiraB;src:url('fonts/FiraSans-Bold.ttf');}
+@font-face{font-family:Mont;src:url('fonts/Montserrat.ttf');font-weight:100 900;}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:Fira,sans-serif;color:#fff8ec}
+#stage{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0}
+canvas{position:absolute;inset:0;width:1920px;height:1080px}
+.ov{position:absolute;inset:0;display:none}
+.show{display:block}
+/* lobby */
+#lobby{background:linear-gradient(90deg,rgba(5,10,30,.82) 0%,rgba(5,10,30,.55) 55%,rgba(5,10,30,.2) 100%)}
+#lobby h1{font:800 92px Mont;margin:0;position:absolute;left:120px;top:170px;letter-spacing:2px;text-shadow:0 0 40px rgba(255,200,120,.6)}
+#lobby .sub{position:absolute;left:124px;top:330px;font-size:40px;opacity:.85;max-width:900px;line-height:1.35}
+#lobby .steps{position:absolute;left:124px;top:500px;font-size:34px;line-height:1.7;opacity:.95}
+#lobby .steps b{color:#ffd27a}
+.qrcard{position:absolute;background:#fff;border-radius:28px;padding:26px;text-align:center;color:#111;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.qrcard img{display:block;width:100%;height:auto}
+.qrcard .url{font:28px FiraB;margin-top:14px;word-break:break-all}
+#lobby .qrcard{right:150px;top:200px;width:520px}
+#lobby .count{position:absolute;right:150px;top:860px;width:520px;text-align:center;font-size:36px}
+#startBtn{position:absolute;left:124px;top:860px;font:700 44px FiraB;padding:26px 70px;border-radius:999px;border:0;background:#ffcf73;color:#2a1d10;cursor:pointer;box-shadow:0 10px 40px rgba(255,200,100,.4)}
+#startBtn:hover{transform:scale(1.03)}
+#lobby .hint{position:absolute;left:124px;top:990px;font-size:24px;opacity:.6}
+/* small join badge */
+#badge{position:absolute;inset:auto;right:28px;top:28px;background:rgba(255,255,255,.92);border-radius:16px;padding:10px;width:150px;color:#111;text-align:center;font:16px FiraB;opacity:.85}
+#badge img{width:130px;display:block;margin:0 auto 4px}
+/* vote */
+#vote{background:rgba(6,8,22,.72);backdrop-filter:blur(3px)}
+#vote .tag{position:absolute;left:120px;top:110px;font:30px FiraB;color:#ffcf73;letter-spacing:3px}
+#vote .q{position:absolute;left:120px;top:160px;width:1100px;font:72px FiraB;line-height:1.15}
+.opt{position:absolute;left:120px;width:1100px;height:170px;border-radius:28px;background:rgba(255,255,255,.08);border:3px solid rgba(255,255,255,.15);overflow:hidden;transition:all .4s}
+.opt .bar{position:absolute;left:0;top:0;bottom:0;width:0;transition:width .5s ease}
+.opt .lbl{position:absolute;left:40px;top:0;bottom:0;display:flex;align-items:center;gap:28px;font:48px FiraB}
+.opt .key{width:84px;height:84px;border-radius:20px;display:flex;align-items:center;justify-content:center;font:52px FiraB;color:#111}
+.opt .num{position:absolute;right:40px;top:0;bottom:0;display:flex;align-items:center;font:52px FiraB}
+.opt .pct{font-size:34px;opacity:.7;margin-left:16px}
+#optA{top:420px}#optB{top:620px}
+#optA .bar{background:rgba(110,170,255,.35)}#optA .key{background:#6eaaff}
+#optB .bar{background:rgba(255,190,90,.35)}#optB .key{background:#ffbe5a}
+.opt.win{border-color:#fff;background:rgba(255,255,255,.18);transform:scale(1.03)}
+.opt.lose{opacity:.35}
+#vote .qrcard{right:120px;top:200px;width:480px}
+#vote .scan{position:absolute;right:120px;top:770px;width:480px;text-align:center;font-size:30px}
+#timer{position:absolute;left:120px;top:860px;width:1100px;height:16px;border-radius:8px;background:rgba(255,255,255,.15);overflow:hidden}
+#timer div{height:100%;width:100%;background:#ffcf73;transform-origin:left}
+#vote .meta{position:absolute;left:120px;top:900px;font-size:32px;opacity:.85}
+#vote .secs{position:absolute;left:1120px;top:886px;font:60px FiraB;width:100px;text-align:right}
+#vote .note{position:absolute;left:120px;top:960px;font-size:28px;color:#ffcf73}
+/* end */
+#end{background:rgba(5,8,20,.85)}
+#end h2{position:absolute;left:0;right:0;top:120px;text-align:center;font:800 90px Mont;margin:0}
+#end .lead{position:absolute;left:0;right:0;top:250px;text-align:center;font-size:38px;opacity:.85}
+#cards{position:absolute;left:210px;top:350px;width:1500px;display:flex;gap:50px}
+.card{flex:1;height:380px;border-radius:30px;border:3px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+.card{padding:0 24px;text-align:center}.card .n{font:34px FiraB;opacity:.7}.card .t{font:44px FiraB;line-height:1.2}.card .s{font-size:28px;opacity:.7}
+.card.got{border-color:#ffcf73;background:rgba(255,207,115,.15)}
+.card.now{transform:scale(1.06);box-shadow:0 0 60px rgba(255,207,115,.5)}
+.card.no .t{opacity:.35}
+#end .btns{position:absolute;left:0;right:0;top:820px;display:flex;justify-content:center;gap:40px}
+#end button{font:40px FiraB;padding:24px 56px;border-radius:999px;border:0;cursor:pointer}
+#replay{background:#ffcf73;color:#2a1d10}#restart{background:rgba(255,255,255,.15);color:#fff}
+#end .hint{position:absolute;left:0;right:0;top:960px;text-align:center;font-size:24px;opacity:.55}
+#pause{position:absolute;left:0;right:0;top:470px;text-align:center;font:80px FiraB;text-shadow:0 0 30px #000}
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c" width="1920" height="1080"></canvas>
+  <div id="badge" class="ov"><img class="qr" alt="QR">Нэгдэх</div>
+  <div id="lobby" class="ov show">
+    <h1>ЖИЖИГХЭН ГЭРЭЛ</h1>
+    <div class="sub">Залуу гэр бүлийн тухай богино анимэйшн. Түүх яаж үргэлжлэхийг <b>та нар</b> шийднэ.</div>
+    <div class="steps">1. Утасныхаа камераар QR кодыг уншуулна<br>2. Асуулт гарахад <b>А</b> эсвэл <b>Б</b>-г дарна<br>3. Ихэнх хүний сонгосноор түүх үргэлжилнэ</div>
+    <div class="qrcard"><img class="qr" alt="QR"><div class="url" id="url1"></div></div>
+    <div class="count"><span id="count1">0</span> хүн холбогдсон</div>
+    <button id="startBtn">Эхлэх ▶</button>
+    <div class="hint">Space — эхлэх / түр зогсоох · F — бүтэн дэлгэц · M — дуу · → — алгасах</div>
+  </div>
+  <div id="vote" class="ov">
+    <div class="tag" id="vtag">САНАЛ ХУРААЛТ</div>
+    <div class="q" id="vq"></div>
+    <div class="opt" id="optA"><div class="bar"></div><div class="lbl"><div class="key">А</div><span id="va"></span></div><div class="num"><span id="nA">0</span><span class="pct" id="pA"></span></div></div>
+    <div class="opt" id="optB"><div class="bar"></div><div class="lbl"><div class="key">Б</div><span id="vb"></span></div><div class="num"><span id="nB">0</span><span class="pct" id="pB"></span></div></div>
+    <div class="qrcard"><img class="qr" alt="QR"><div class="url" id="url2"></div></div>
+    <div class="scan">QR-ыг уншуулаад сонгоорой</div>
+    <div id="timer"><div></div></div>
+    <div class="secs" id="secs"></div>
+    <div class="meta"><span id="total">0</span> хүн санал өгсөн · <span id="count2">0</span> хүн холбогдсон</div>
+    <div class="note" id="vnote"></div>
+  </div>
+  <div id="end" class="ov">
+    <h2 id="endTitle">ТӨГСГӨЛ</h2>
+    <div class="lead" id="endLead"></div>
+    <div id="cards"></div>
+    <div class="btns"><button id="replay">Дахин сонгох ↺</button><button id="restart">Эхнээс нь үзэх</button></div>
+    <div class="hint">«Дахин сонгох» дарвал эхний асуултаас дахин сонгоно</div>
+  </div>
+  <div id="pause" class="ov">⏸ Түр зогссон</div>
+</div>
+<script src="/socket.io/socket.io.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/segments.js"></script>
+<script src="js/screen.js"></script>
+</body>
+</html>
